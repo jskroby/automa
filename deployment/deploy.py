@@ -5,7 +5,7 @@
 import json
 import os
 from web3 import Web3
-from solcx import compile_files, install_solc
+from solcx import compile_files, install_solc, get_installed_solc_versions
 
 CONTRACTS = [
     "contracts/EntropyNFT.sol",
@@ -14,32 +14,42 @@ CONTRACTS = [
 ]
 
 
+def deploy_contract(w3: Web3, interface: dict, *args) -> str:
+    contract = w3.eth.contract(abi=interface["abi"], bytecode=interface["bin"])
+    try:
+        tx = contract.constructor(*args).transact()
+    except Exception as exc:
+        raise SystemExit(f"Deployment failed: {exc}")
+    receipt = w3.eth.wait_for_transaction_receipt(tx)
+    return receipt.contractAddress
+
+
 def main() -> None:
     rpc = os.environ.get("RPC_URL")
     if not rpc:
         raise SystemExit("RPC_URL environment variable is not set")
-    install_solc("0.8.25")
+
+    if "0.8.25" not in get_installed_solc_versions():
+        install_solc("0.8.25")
+
     w3 = Web3(Web3.HTTPProvider(rpc))
     if not w3.is_connected():
         raise SystemExit("Web3 provider is not connected")
     w3.eth.default_account = w3.eth.accounts[0]
 
-    compiled = compile_files(CONTRACTS, output_values=["abi", "bin"])
+    try:
+        compiled = compile_files(CONTRACTS, output_values=["abi", "bin"])
+    except Exception as exc:
+        raise SystemExit(f"Compilation failed: {exc}")
 
-    entropy_iface = compiled['contracts/EntropyNFT.sol:EntropyNFT']
-    EntropyNFT = w3.eth.contract(abi=entropy_iface['abi'], bytecode=entropy_iface['bin'])
-    receipt = w3.eth.wait_for_transaction_receipt(EntropyNFT.constructor().transact())
-    entropy_addr = receipt.contractAddress
+    entropy_iface = compiled["contracts/EntropyNFT.sol:EntropyNFT"]
+    entropy_addr = deploy_contract(w3, entropy_iface)
 
-    oracle_iface = compiled['contracts/LLMDemocracyOracle.sol:LLMDemocracyOracle']
-    Oracle = w3.eth.contract(abi=oracle_iface['abi'], bytecode=oracle_iface['bin'])
-    receipt = w3.eth.wait_for_transaction_receipt(Oracle.constructor().transact())
-    oracle_addr = receipt.contractAddress
+    oracle_iface = compiled["contracts/LLMDemocracyOracle.sol:LLMDemocracyOracle"]
+    oracle_addr = deploy_contract(w3, oracle_iface)
 
-    eusd_iface = compiled['contracts/ElasticUSD.sol:ElasticUSD']
-    ElasticUSD = w3.eth.contract(abi=eusd_iface['abi'], bytecode=eusd_iface['bin'])
-    receipt = w3.eth.wait_for_transaction_receipt(ElasticUSD.constructor(oracle_addr).transact())
-    eusd_addr = receipt.contractAddress
+    eusd_iface = compiled["contracts/ElasticUSD.sol:ElasticUSD"]
+    eusd_addr = deploy_contract(w3, eusd_iface, oracle_addr)
 
     oracle = w3.eth.contract(address=oracle_addr, abi=oracle_iface['abi'])
     oracle.functions.registerLLMNode(w3.eth.default_account, True).transact()

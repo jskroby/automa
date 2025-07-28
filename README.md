@@ -87,9 +87,12 @@ yarn lint
 ![Install in firefox](https://res.cloudinary.com/chat-story/image/upload/v1665128974/automa/firefox_30wkpfGM7N_lihajj.png)
 ## Smart Contract Deployment
 
-A deployment script is available in `deployment/deploy.py` to compile and deploy the contracts.
-A GitHub Actions workflow at `.github/workflows/deploy.yml` runs this script on pushes to `main`.
-Ensure the `RPC_URL` secret is configured with your node endpoint.
+A deployment script in `deployment/deploy.py` compiles and deploys the contracts.
+The script installs the required Solidity compiler if missing and writes the deployed
+addresses and ABIs to the `deploy_output` directory.
+The `.github/workflows/deploy.yml` workflow runs the script on pushes to `main`
+and caches Python dependencies for faster runs. Ensure the `RPC_URL` secret is
+configured with your node endpoint.
 
 
 ## Contributors
