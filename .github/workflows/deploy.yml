@@ -1,0 +1,29 @@
+name: Deploy Contracts
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+      - run: npm ci
+      - run: npm run build
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r deployment/requirements.txt
+      - name: Deploy smart contracts
+        env:
+          RPC_URL: ${{ secrets.RPC_URL }}
+        run: python deployment/deploy.py

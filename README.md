@@ -85,6 +85,12 @@ yarn lint
 3. Browse the `automa/build` directory and select the `manifest.json` file.
 
 ![Install in firefox](https://res.cloudinary.com/chat-story/image/upload/v1665128974/automa/firefox_30wkpfGM7N_lihajj.png)
+## Smart Contract Deployment
+
+A deployment script is available in `deployment/deploy.py` to compile and deploy the contracts.
+A GitHub Actions workflow at `.github/workflows/deploy.yml` runs this script on pushes to `main`.
+Ensure the `RPC_URL` secret is configured with your node endpoint.
+
 
 ## Contributors
 Thanks to everyone who has submitted issues, made suggestions, and generally helped make this a better project.
